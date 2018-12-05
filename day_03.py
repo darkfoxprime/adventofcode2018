@@ -3,6 +3,9 @@ import re
 import sys
 import itertools
 
+def process_input_data(input_data):
+    return input_data
+
 def claims(input_data):
     # input format is:  <id> @ <x>,<y>: <w>x<h>
     re_id_format = re.compile(r'''#(?P<id>[0-9]+) *@ *(?P<x>[0-9]+) *, *(?P<y>[0-9]+) *: *(?P<w>[0-9]+) *x *(?P<h>[0-9]+)''')
@@ -81,11 +84,11 @@ def claims_to_occupancy_data(claims):
 # (for a single claim) or (end-start+1) (for a range with multiple claims),
 # then sum the sums of each row list.
 
-def day_03a(input_data):
+def part_1(input_data):
     occupancy_data = claims_to_occupancy_data(claims(input_data))
     return sum(sum(0 if len(occupancy[3]) == 1 else 1 + (occupancy[2] - occupancy[1]) for occupancy in row) for row in occupancy_data)
 
-def day_03b(input_data):
+def part_2(input_data):
     all_ids = set(claim['id'] for claim in claims(input_data))
     overlapping_ids = reduce(
                 set.union,
@@ -100,7 +103,12 @@ def day_03b(input_data):
 
 if __name__ == '__main__':
 
-    input_data = open('day_03.input').read()
+    sample_data = process_input_data(open(__file__.rsplit('.')[0] + '.sample').read())
 
-    print "Day 03 a = {}".format(day_03a(input_data))
-    print "Day 03 b = {}".format(day_03b(input_data))
+    print "sample data: part 1 = {}".format(part_1(sample_data))
+    print "sample data: part 2 = {}".format(part_2(sample_data))
+
+    input_data = process_input_data(open(__file__.rsplit('.')[0] + '.input').read())
+
+    print "real input: part 1 = {}".format(part_1(input_data))
+    print "real input: part 2 = {}".format(part_2(input_data))
