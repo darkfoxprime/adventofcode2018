@@ -2,8 +2,12 @@
 import sys
 import itertools
 
+# process the input data into a list of words (box ids)
+
 def process_input_data(input_data):
     return input_data.strip().split()
+
+# return a dictionary counting how many times each letter occurs in a word.
 
 def count_letters_in_word(word):
     return reduce(
@@ -16,6 +20,17 @@ def count_letters_in_word(word):
                 {}
             )
 
+# For each word in the input data, count the number of times letters
+# appear (disregarding the letters themselves) and record whether or
+# not any letter appeared exactly twice and whether or not any letter
+# appeared exactly three times.
+#
+# zip the results into a list of the letter-appeared-twice values and
+# the letter-appeared-thrice values.
+#
+# Sum each such list (since False sums to 0 and True sums to 1),
+# then multiple the sums of the two lists together.
+
 def part_1(input_data):
     return reduce(
                 int.__mul__,
@@ -26,16 +41,17 @@ def part_1(input_data):
                           (2 in counts, 3 in counts)
                           for word in input_data
                           for counts in [
-                              set((2,3)).intersection(
-                                  set(
-                                      count_letters_in_word(word).values()
-                                  )
+                              set(
+                                  count_letters_in_word(word).values()
                               )
                           ]
                       ]
                    )
                ]
            )
+
+# return the string of letters which are identical (the same letter in
+# the same position) between two words.
 
 def identical_letters(word1, word2):
     return ''.join(letter1 for (letter1, letter2) in zip(word1, word2) if letter1 == letter2)
