@@ -9,41 +9,67 @@ def process_input_data(input_data):
     re_order = re.compile(r'''Step ([^ ]+) must be finished before step ([^ ]+) can begin''')
     return list(match.groups() for match in re_order.finditer(input_data))
 
-# Determine the complete set of predecessors for each step.
+# Use a reduction to determine the complete set of predecessors for
+# each step.
 #
-#   Do this with a huge reduction.
+#   1.  The initial state for the reduction is an empty dictionary.
 #
-#   The initial state for the reduction is an empty dictionary.
+#   2.  Run the reduction across the list of (predecessor, successor)
+#       tuples.
 #
-#   The state produced at each reduction step is a dictionary
-#   mapping a step to the set of all the steps that must be completed
-#   before it; for example, `{'B': set(['A', 'C'])}`
+#   3.  The state produced at each reduction step is a dictionary mapping
+#       a step to the set of all the steps that must be completed before
+#       it; for example, `{'B': set(['A', 'C'])}`.  This is a two phase
+#       process:
 #
-#   On each step, produce a new dictionary from the list of
-#   successor,predecessors pairs from the dictionary's items where
-#   each predecessors set that includes the successor gets the new
-#   predecessor added to it.
+#   4.  The first phase produces a new dictionary from the list of
+#       `(successor,predecessors)` pairs from the dictionary's items
+#       where each `predecessors` set that includes the current step's
+#       `successor` gets the current step's `predecessor` added to it.
 #
-#   After producing this new dictionary, add one additional mapping
-#   for the current step's successor and the set of the already-known
-#   predecessors for the current step's successor unioned with the
-#   current step's predecessor and all of the already-known predecessors
-#   for the current step's predecessor.  Also add the current step's
-#   predecessor if needed.
+#   5.  The second phase adds one additional mapping for the current
+#       step's `successor` and the set of the already-known predecessors
+#       for the current step's `successor` unioned with the current
+#       step's `predecessor` and all of the already-known `predecessors`
+#       for the current step's `predecessor`, as well as ensuring that
+#       the current step's `predecessor` has a mapping as well.
 #
-#   Once the reduction for the predecessors dictionary is complete,
-#   transform it back into a list of (predecessors, successor) tuples
-#   (e.g. `(set(['A', 'C']), 'B')`).
+#   6.  Once the reduction for the predecessors dictionary is complete,
+#       transform it back into a list of (predecessors, successor) tuples
+#       (e.g. `(set(['A', 'C']), 'B')`).
+#
+# Because this is a reduction of comprehensions/generators, the code works
+# from the "inside out", so the documented sections are repeated within the
+# following code.
 
 full_predecessors_list = lambda predecessor_list: (
+
+#   6.  Once the reduction for the predecessors dictionary is complete,
+#       transform it back into a list of (predecessors, successor) tuples
+#       (e.g. `(set(['A', 'C']), 'B')`).
+
             list(
                 (predecessors, successor)
                 for (successor, predecessors) in
                     reduce(
+
+#   3.  The state produced at each reduction step is a dictionary mapping
+#       a step to the set of all the steps that must be completed before
+#       it; for example, `{'B': set(['A', 'C'])}`.  This is a two phase
+#       process:
+
                         lambda predecessors,(predecessor,successor):
                             # use a generator as a trick to be able to create
                             # and reference variables within the expression
                             (
+
+#   5.  The second phase adds one additional mapping for the current
+#       step's `successor` and the set of the already-known predecessors
+#       for the current step's `successor` unioned with the current
+#       step's `predecessor` and all of the already-known `predecessors`
+#       for the current step's `predecessor`, as well as ensuring that
+#       the current step's `predecessor` has a mapping as well.
+
                                 dict(
                                     new_predecessors.items()
                                     + [
@@ -62,6 +88,12 @@ full_predecessors_list = lambda predecessor_list: (
                                 )
                                 # trick to be able to reference the new dictionary
                                 for new_predecessors in [
+
+#   4.  The first phase produces a new dictionary from the list of
+#       `(successor,predecessors)` pairs from the dictionary's items
+#       where each `predecessors` set that includes the current step's
+#       `successor` gets the current step's `predecessor` added to it.
+
                                     dict(
                                         (
                                             known_successor,
@@ -77,8 +109,15 @@ full_predecessors_list = lambda predecessor_list: (
                                 ]
                             ).next()
                         ,
+
+#   2.  Run the reduction across the list of (predecessor, successor)
+#       tuples.
+
                         predecessor_list
                         ,
+
+#   1.  The initial state for the reduction is an empty dictionary.
+
                         {}
                     ).iteritems()
             )
@@ -86,30 +125,39 @@ full_predecessors_list = lambda predecessor_list: (
 
 # Part 1:
 #
-#   Determine the final order for the input steps, based on the input
-#   data, which is a tuple of (predecessor, successor).
+# Determine the final order for the input steps, based on the input data,
+# which is a tuple of (predecessor, successor).
 #
-#   Start by generating the full list of predecessors for each successor,
-#   using the `full_predecessors_list` lambda above.
-#   Use the following reduction algorithm to order the steps:
+#   1.  Start by generating the full list of predecessors for each
+#       successor, using the `full_predecessors_list` lambda above.
 #
-#   Initialize the reduction state with an empty list (the ordered
-#   list of steps) and the actual list of steps produced above.
+#   2.  Initialize the reduction state with an empty list (the ordered
+#       list of steps) and the actual list of steps produced above.
 #
-#   Run the reduction over the `range` of the number of steps.
+#   3.  We know we have to run the reduction once for every step,
+#       so run the reduction over the `range` of the length of the
+#       predecessors list.
 #
-#   At each reduction step, return a new state that has the first
-#   step from the _sorted_ list of steps added to the ordered list
-#   of steps and has list of remaining steps mapped to filter out
-#   that first selected step and to remove that selected step from
-#   the predecessors set of every other step.
+#   4.  At each reduction step, return a new state that has the first
+#       step from the _sorted_ list of steps added to the ordered list
+#       of steps and has the list of remaining steps mapped to filter
+#       out that first selected step and to remove that selected step
+#       from the predecessors set of every other step.
 #
-#   Finally, given the ordered list of steps, join it together into
-#   a single string to be returned.
+#   5.  Finally, given the ordered list of steps, join it together into
+#       a single string to be returned.
+#
+# Because this is a reduction of comprehensions/generators, the code works
+# from the "inside out", so the documented sections are repeated within the
+# following code.
 
 def part_1(input_data):
 
     return (
+
+#   5.  Finally, given the ordered list of steps, join it together into
+#       a single string to be returned.
+
                 ''.join(
                     # use a generator as a trick to be able to create
                     # and reference variables within the expression
@@ -118,6 +166,13 @@ def part_1(input_data):
                             lambda (ordered_steps, remaining_steps), _:
                                 # same generator trick
                                 (
+
+#   4.  At each reduction step, return a new state that has the first
+#       step from the _sorted_ list of steps added to the ordered list
+#       of steps and has the list of remaining steps mapped to filter
+#       out that first selected step and to remove that selected step
+#       from the predecessors set of every other step.
+
                                     (
                                         ordered_steps + [new_step]
                                         ,
@@ -132,12 +187,26 @@ def part_1(input_data):
                                     ]
                                 ).next()
                             ,
+
+#   3.  We know we have to run the reduction once for every step,
+#       so run the reduction over the `range` of the length of the
+#       predecessors list.
+
                             range(len(predecessors_list))
                             ,
+
+#   2.  Initialize the reduction state with an empty list (the ordered
+#       list of steps) and the actual list of steps produced above.
+
                             ([], predecessors_list)
                         )
                         for predecessors_list in [
+
+#   1.  Start by generating the full list of predecessors for each
+#       successor, using the `full_predecessors_list` lambda above.
+
                             full_predecessors_list(input_data)
+
                         ]
                     ).next()[0]
                 )
@@ -145,74 +214,98 @@ def part_1(input_data):
 
 # Part 2:
 #
-#   This time, we need to actually schedule the steps to be done
-#   based on having multiple workers available.  This changes the
-#   order of steps, because some later steps will be available to
-#   be performed before earlier steps are made visible.
+#   This time, we need to actually schedule the steps to be done based on
+#   having multiple workers available.  This changes the order of steps,
+#   because some later steps will be available to be performed before
+#   earlier steps are made visible.
 #
-#   Start by generating the full list of predecessors for each step,
-#   using the `full_predecessors_list` lambda above, then transform each
-#   step letter to its ordinal value (where A is 1 and Z is 26).
-#   (Because this is a map/reduce expression, the starting value is at
-#   the end of the expression)
+#   1.  Start by generating the full list of predecessors for each step,
+#       using the `full_predecessors_list` lambda above, then transform
+#       each step letter to its ordinal value (where A is 1 and Z is 26).
+#       (Because this is a map/reduce expression, the starting value is
+#       at the end of the expression)
 #
-#   Use the following reduction algorithm to generate the steps taken in
-#   time sequence.
+#   2.  Use the following reduction algorithm to generate the steps
+#       taken in time sequence.
 #
-#   The reduction state is a tuple containing the total time taken to
-#   complete all steps (or None if the steps have not yet been completed),
-#   a list of worker tuples, and the remaining steps to be completed,
-#   initially set to the above-modified full_predecessors_list.
+#   3.  The reduction state is a tuple containing the total time
+#       taken to complete all steps (or None if the steps have not yet
+#       been completed), a list of worker tuples, and the remaining
+#       steps to be completed, initially set to the above-modified
+#       full_predecessors_list.
 #
-#   Each worker's tuple contains a step and the number of seconds
-#   remaining for that worker to complete that step (where the initial
-#   number of seconds is equal to 60 plus the ordinal value of the step.
+#   4.  Each worker's tuple contains a step and the number of seconds
+#       remaining for that worker to complete that step (where the
+#       initial number of seconds is equal to 60 plus the ordinal value
+#       of the step.
 #
-#   The initial state is `(None, [(None, 0)]*workers, modified_full_predecessors_list)`
+#   5.  The initial state is `(None, [(None, 0)]*workers,
+#       modified_full_predecessors_list)`
 #
-#   Run the reduction over the `range` of one plus the maximum number of seconds
-#   that the process would take if only one step could be performed at a
-#   time:  `xrange(1 + 60 * num_steps + sum(ordinal_step_values))`.  The value of
-#   this is called the `clock`.
+#   6.  Run the reduction over the `range` of one plus the maximum
+#       number of seconds that the process would take if only one step
+#       could be performed at a time:  `xrange(1 + 60 * num_steps +
+#       sum(ordinal_step_values))`.  The value of this is called the
+#       `clock`.
 #
-#   At each reduction step, return a new state as follows:
+#   7.  At each reduction step, return a new state as follows:
 #
-#   *   If the final time is not None, return (final_time, None, [])
-#   *   Otherwise:
-#       *   Generate an interim state:
-#           *   Determine the steps that just completed by finding the
-#               step values for each worker whose time-to-complete is
-#               equal to 1.
-#           *   Return the interim state consisting of the workers list
-#               with each time-to-complete value reduced by 1 and each
-#               step that has been completed replaced by None, and the
-#               list of remaining steps with the completed steps skipped
-#               and also filtered out of the predecessor sets for each
-#               still-remaining step.
-#       *   If the list of remaining steps in the interim state is empty
-#           _and_ no workers are working, then the next state is `(clock,
-#           None, [])` marking the time when the process completed.
-#       *   Otherwise, generate the next state by reducing the interim state:
-#           *   Initialize the next state with `(None, [], interim_remaining_steps)`
-#           *   Run the reduction across the interim state's workers list:
-#               *   If the worker's current step is None, the interim
-#                   remaining steps list is not empty, and the first
-#                   interim remaining step has no predecessors, the next
-#                   state's workers list is the previous state's workers
-#                   list with a new worker added for the first remaining
-#                   step and the time that step will take to complete,
-#                   and the next state's remaining steps list is the
-#                   previous state's remaining steps list with the first
-#                   step removed.
-#               *   Otherwise, the next state's workers list is the
-#                   previous state's workers list with the new worker
-#                   added and the next state's remaining steps list is
-#                   the same as the previous state's remaining steps list.
+#       8.  If the final time is not None, return (final_time, None, [])
 #
-#   When the full reduction is complete, just return the final time from
-#   the reduction state.
+#       9.  Otherwise:
+#
+#           10. Generate an interim state:
+#
+#               11. Determine the set of steps that just completed
+#                   by finding the step values for each worker whose
+#                   time-to-complete is equal to 1.
+#
+#               12. Return the interim state consisting of the workers
+#                   list with each time-to-complete value reduced by
+#                   1 and each step that has been completed replaced
+#                   by None, and the _sorted_ list of remaining steps
+#                   with the completed steps skipped and also filtered out
+#                   of the predecessor sets for each still-remaining step.
+#
+#           13. If the list of remaining steps in the interim state
+#               is empty _and_ no workers are working, then the next
+#               state is `(clock, None, [])` marking the time when the
+#               process completed.
+#
+#           14. Otherwise, generate the next state by reducing the
+#               interim state:
+#
+#               15. Initialize the next state with `(None, [],
+#                   interim_remaining_steps)`
+#
+#               16. Run the reduction across the interim state's
+#                   workers list:
+#
+#                   17. If the worker's current step is None, the interim
+#                       remaining steps list is not empty, and the first
+#                       interim remaining step has no predecessors,
+#                       the next state's workers list is the previous
+#                       state's workers list with a new worker added
+#                       for the first remaining step and the time that
+#                       step will take to complete, and the next state's
+#                       remaining steps list is the previous state's
+#                       remaining steps list with the first step removed.
+#
+#                   18. Otherwise, the next state's workers list is the
+#                       previous state's workers list with the new worker
+#                       added and the next state's remaining steps list
+#                       is the same as the previous state's remaining
+#                       steps list.
+#
+#   19. When the full reduction is complete, just return the final time
+#       from the reduction state.
+#
+# Because this is a reduction of comprehensions/generators, the code works
+# from the "inside out", so the documented sections are repeated within the
+# following code.
 
-# a lambda to convert a step letter to an ordinal value:
+
+# Define a helper lambda to convert a step letter to an ordinal value:
 ordinal_value_of = (
             lambda letter:
                 ord(letter) - ord('A') + 1
@@ -223,33 +316,42 @@ def part_2(input_data, num_workers, step_base_time):
     return (
                 # generator trick again
                 (
+
+#   2.  Use the following reduction algorithm to generate the steps
+#       taken in time sequence.
+#
+#   3.  The reduction state is a tuple containing the total time
+#       taken to complete all steps (or None if the steps have not yet
+#       been completed), a list of worker tuples, and the remaining
+#       steps to be completed, initially set to the above-modified
+#       full_predecessors_list.
+#
+#   4.  Each worker's tuple contains a step and the number of seconds
+#       remaining for that worker to complete that step (where the
+#       initial number of seconds is equal to 60 plus the ordinal value
+#       of the step.
+
                     reduce(
 
-#   The reduction state is a tuple containing the total time taken to
-#   complete all steps (or None if the steps have not yet been completed),
-#   a list of worker tuples, and the remaining steps to be completed,
-#   initially set to the above-modified full_predecessors_list.
-#
-#   Each worker's tuple contains a step and the number of seconds
-#   remaining for that worker to complete that step (where the initial
-#   number of seconds is equal to 60 plus the ordinal value of the step.
+#   7.  At each reduction step, return a new state as follows:
 
                         lambda (final_time, workers, remaining_steps), clock:
 
-#   *   If the final time is not None, return (final_time, None, [])
+#       8.  If the final time is not None, return (final_time, None, [])
 
                             (final_time, None, [])
                             if final_time is not None
                             else (
 
-#   *   Otherwise:
+#       9.  Otherwise:
 
                                 # generator trick again
                                 (
 
-#       *   If the list of remaining steps in the interim state is empty
-#           _and_ no workers are working, then the next state is `(clock,
-#           None, [])` marking the time when the process completed.
+#           13. If the list of remaining steps in the interim state
+#               is empty _and_ no workers are working, then the next
+#               state is `(clock, None, [])` marking the time when the
+#               process completed.
 
                                     (clock, None, [])
                                     if
@@ -260,20 +362,21 @@ def part_2(input_data, num_workers, step_base_time):
                                         )
                                     else (
 
-#       *   Otherwise, generate the next state by reducing the interim workers list to a final state:
+#           14. Otherwise, generate the next state by reducing the
+#               interim state:
 
                                         reduce(
                                             lambda (next_final_time, next_workers, next_steps), (worker_step, worker_time):
 
-#               *   If the worker's current step is None, the interim
-#                   remaining steps list is not empty, and the first
-#                   interim remaining step has no predecessors, the next
-#                   state's workers list is the previous state's workers
-#                   list with a new worker added for the first remaining
-#                   step and the time that step will take to complete,
-#                   and the next state's remaining steps list is the
-#                   previous state's remaining steps list with the first
-#                   step removed.
+#                   17. If the worker's current step is None, the interim
+#                       remaining steps list is not empty, and the first
+#                       interim remaining step has no predecessors,
+#                       the next state's workers list is the previous
+#                       state's workers list with a new worker added
+#                       for the first remaining step and the time that
+#                       step will take to complete, and the next state's
+#                       remaining steps list is the previous state's
+#                       remaining steps list with the first step removed.
 
                                                 (
                                                     next_final_time,
@@ -290,10 +393,11 @@ def part_2(input_data, num_workers, step_base_time):
                                                     and len(next_steps) > 0
                                                     and len(next_steps[0][0]) == 0
 
-#               *   Otherwise, the next state's workers list is the
-#                   previous state's workers list with the new worker
-#                   added and the next state's remaining steps list is
-#                   the same as the previous state's remaining steps list.
+#                   18. Otherwise, the next state's workers list is the
+#                       previous state's workers list with the new worker
+#                       added and the next state's remaining steps list
+#                       is the same as the previous state's remaining
+#                       steps list.
 
                                                 else (
                                                     next_final_time,
@@ -302,27 +406,27 @@ def part_2(input_data, num_workers, step_base_time):
                                                 )
                                             ,
 
-#           *   Run the reduction across the interim state's workers list:
+#               16. Run the reduction across the interim state's
+#                   workers list.
 
                                             interim_workers
                                             ,
 
-#           *   Initialize the next state with `(None, [], interim_remaining_steps)`
+#               15. Initialize the next state with `(None, [],
+#                   interim_remaining_steps)`
 
                                             (None, [], interim_steps)
                                         )
                                     )
 
-#       *   Generate an interim state:
+#           10. Generate an interim state:
 
                                     for (interim_workers, interim_steps) in [
 
-#           *   Return the interim state consisting of the workers list
-#               with each time-to-complete value reduced by 1 and each
-#               step that has been completed replaced by None, and the
-#               list of remaining steps with the completed steps skipped
-#               and also filtered out of the predecessor sets for each
-#               still-remaining step.
+#               12. Return the interim state consisting of the workers
+#                   list with each time-to-complete value reduced by
+#                   1 and each step that has been completed replaced
+#                   by None, ...
 
                                         (
                                             [
@@ -332,6 +436,11 @@ def part_2(input_data, num_workers, step_base_time):
                                                 for (worker_step, worker_time) in workers
                                             ]
                                             ,
+
+#                        ... and the _sorted_ list of remaining steps
+#                   with the completed steps skipped and also filtered out
+#                   of the predecessor sets for each still-remaining step.
+
                                             sorted(
                                                 (predecessors - completed_steps, step)
                                                 for (predecessors, step) in remaining_steps
@@ -339,9 +448,9 @@ def part_2(input_data, num_workers, step_base_time):
                                             )
                                         )
 
-#           *   Determine the steps that just completed by finding the
-#               step values for each worker whose time-to-complete is
-#               equal to 1.
+#               11. Determine the set of steps that just completed
+#                   by finding the step values for each worker whose
+#                   time-to-complete is equal to 1.
 
                                         for completed_steps in [
                                             set(
@@ -356,10 +465,11 @@ def part_2(input_data, num_workers, step_base_time):
                             )
                         ,
 
-#   Run the reduction over the `range` of one plus the maximum number of seconds
-#   that the process would take if only one step could be performed at a
-#   time:  `xrange(1 + 60 * num_steps + sum(ordinal_step_values))`.  The value of
-#   this is called the `clock`.
+#   6.  Run the reduction over the `range` of one plus the maximum
+#       number of seconds that the process would take if only one step
+#       could be performed at a time:  `xrange(1 + 60 * num_steps +
+#       sum(ordinal_step_values))`.  The value of this is called the
+#       `clock`.
 
                         xrange(
                             1
@@ -370,14 +480,17 @@ def part_2(input_data, num_workers, step_base_time):
                         )
                         ,
 
-#   The initial state is `(None, [(None, 0)]*workers, modified_full_predecessors_list)`
+#   5.  The initial state is `(None, [(None, 0)]*workers,
+#       modified_full_predecessors_list)`
 
                         (None, [(None, 0)] * num_workers, modified_step_list)
                     )
 
-#   Start by generating the full list of predecessors for each step,
-#   using the `full_predecessors_list` lambda above, then transform each
-#   step letter to its ordinal value (where A is 1 and Z is 26).
+#   1.  Start by generating the full list of predecessors for each step,
+#       using the `full_predecessors_list` lambda above, then transform
+#       each step letter to its ordinal value (where A is 1 and Z is 26).
+#       (Because this is a map/reduce expression, the starting value is
+#       at the end of the expression)
 
                     for modified_step_list in [
                         [
@@ -396,8 +509,8 @@ def part_2(input_data, num_workers, step_base_time):
 
                 ).next()
 
-#   When the full reduction is complete, just return the final time from
-#   the reduction state.
+#   19. When the full reduction is complete, just return the final time
+#       from the reduction state.
 
             )[0]
 
