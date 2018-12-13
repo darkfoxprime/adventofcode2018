@@ -2,9 +2,13 @@
 import re
 import sys
 import itertools
+import time
+import operator
 
-DEBUGGING=False
+DEBUGGING = False
+
 if DEBUGGING:
+
     def reduce(func, iterable, initial=None):
         iterable = iter(iterable)
         if initial is None:
@@ -14,6 +18,40 @@ if DEBUGGING:
             initial = func(initial, value)
         print >> sys.stderr, ">>reduce<< final state={0!r}".format(initial)
         return initial
+
+    # pull in python-native version of `accumulate` from python 3
+    def accumulate(iterable, func=operator.add):
+        'Return running totals'
+        # accumulate([1,2,3,4,5]) --> 1 3 6 10 15
+        # accumulate([1,2,3,4,5], operator.mul) --> 1 2 6 24 120
+        it = iter(iterable)
+        try:
+            total = next(it)
+        except StopIteration:
+            return
+        print >> sys.stderr, ">>accumulate<< initial state={0!r}".format(total)
+        yield total
+        for element in it:
+            total = func(total, element)
+            print >> sys.stderr, ">>accumulate<< state={0!r}".format(total)
+            yield total
+
+else:
+
+    # pull in python-native version of `accumulate` from python 3
+    def accumulate(iterable, func=operator.add):
+        'Return running totals'
+        # accumulate([1,2,3,4,5]) --> 1 3 6 10 15
+        # accumulate([1,2,3,4,5], operator.mul) --> 1 2 6 24 120
+        it = iter(iterable)
+        try:
+            total = next(it)
+        except StopIteration:
+            return
+        yield total
+        for element in it:
+            total = func(total, element)
+            yield total
 
 ########################################################################
 #
@@ -39,16 +77,35 @@ part_2 = lambda input_data: (
             None
         )
 
+########################################################################
+#
+# Main controller
+
 if __name__ == '__main__':
 
     sample_data = process_input_data(open(__file__.rsplit('.')[0] + '.sample').read())
 
-    print "sample data: part 1 = {}".format(part_1(sample_data))
-    print "sample data: part 2 = {}".format(part_2(sample_data))
+    t = time.time()
+    result = part_1(sample_data)
+    t = time.time() - t
+    print "{}: sample data: part 1 = {}".format(t, result)
+
+    t = time.time()
+    result = part_2(sample_data)
+    t = time.time() - t
+    print "{}: sample data: part 2 = {}".format(t, result)
 
     if DEBUGGING: sys.exit(0)
 
     input_data = process_input_data(open(__file__.rsplit('.')[0] + '.input').read())
 
-    print "real input: part 1 = {}".format(part_1(input_data))
-    print "real input: part 2 = {}".format(part_2(input_data))
+    t = time.time()
+    result = part_1(input_data)
+    t = time.time() - t
+    print "{}: input data: part 1 = {}".format(t, result)
+
+    t = time.time()
+    result = part_2(input_data)
+    t = time.time() - t
+    print "{}: input data: part 2 = {}".format(t, result)
+
