@@ -1,0 +1,136 @@
+; #eq assigns a value to a symbol.  During expression evaluation,
+; any symbol name will be replaced by the symbol's value after
+; being run through the same expression evaluation function.
+
+ACC:    #eq     r0
+IP:     #eq     r1
+X:      #eq     r2
+TMP:    #eq     r3
+NUM:    #eq     r4
+Y:      #eq     r5
+
+; #ip is a CPU directive that indicates which register will
+; hold a copy of the program counter.  Using this directive
+; and modifying that register will result in the program
+; counter being modified; this is the only way to effect
+; branching.
+
+        #ip     IP
+
+; main program
+
+; The main program must start at address 17 in order for the
+; number calculation to result in the same value.
+
+        set     (main-1) -> IP      ; branch to main
+
+; The #org directive resets the current address to the value
+; given.
+;
+; If this causes addresses to be undefined, the assembler will
+; fill in those addresses with a no-operation instruction; in
+; the current version, it uses the final `set r0 -> r0`.
+
+        #org 17
+
+main:
+
+; This code is directly from the original program, with registers
+; replaced by symbolic names.
+; I assume the differences between people's puzzles are the constants
+; that get added/multiplied to the number being calculated.
+
+; Calculate the "easy" number
+
+        add     NUM,  2 -> NUM      ; NUM += 2
+        mul     NUM, NUM -> NUM     ; NUM *= NUM
+        mul     IP, NUM -> NUM      ; NUM *= IP (NUM *= 19)
+        mul     NUM, 11 -> NUM      ; NUM *= 11
+        add     TMP,  3 -> TMP      ; TMP += 3
+        mul     TMP, IP -> TMP      ; TMP *= IP (TMP *= 22)
+        add     TMP,  4 -> TMP      ; TMP += 4
+        add     NUM, TMP -> NUM     ; NUM += TMP
+
+; NUM is now 906.
+
+; If ACC is zero, skip to `count`
+; If ACC is one, skip to `main2`
+; If ACC is more than one, may the CPU have mercy on your soul.
+
+        add     IP, ACC -> IP       ; IP += ACC (skip over `ACC` instructions)
+        set     (count-1) -> IP     ; branch to count
+
+main2:
+
+; Calculate the "hard" number
+
+        set     IP -> TMP           ; TMP = IP (TMP = 27)
+        mul     TMP, IP -> TMP      ; TMP *= IP (TMP *= 28)
+        add     IP, TMP -> TMP      ; TMP += IP (TMP += 29)
+        mul     IP, TMP -> TMP      ; TMP *= IP (TMP *= 30)
+        mul     TMP, 14 -> TMP      ; TMP *= 14
+        mul     TMP, IP -> TMP      ; TMP *= IP (TMP *= 32)
+        add     NUM, TMP -> NUM     ; NUM += TMP
+
+; NUM is now 10551306.
+
+; Reset ACC
+
+        set     0 -> ACC            ; ACC = 0
+
+; Determine the sum of the pairs of numbers that multiply to `NUM`.
+; Do this with a single loop counting from both ends and terminating
+; when the first loop counter is greater than the second.
+; Each loop, check if X*Y == NUM; if so, add both X and Y to ACC.
+; If X*Y > NUM, decrement X; else increment Y.
+; If Y>X, break out of the loop (and halt); else go back to the
+; beginning of the loop.
+
+count:
+
+; Initialize the two loop counters for the single from-both-ends loop.
+
+        set      1 -> Y             ; Y = 1
+        set    NUM -> X             ; X = 1
+
+; do
+;   if (X*Y) == NUM then ACC += X + Y
+;   if (X*Y) > NUM then X -= 1
+;   else Y += 1
+; until Y > X
+
+count2:
+
+; Check if X*Y == NUM
+; If so, add X and Y to ACC
+
+        mul     X, Y -> TMP         ; TMP = X * Y
+        eq      TMP, NUM -> TMP     ; TMP = (TMP == NUM)
+        add     TMP, IP -> IP       ; skip branch if equal
+        set     (count3-1) -> IP    ; branch to count3 if not equal
+
+        add     ACC, Y -> ACC       ; ACC += Y
+        add     ACC, X -> ACC       ; ACC += X
+
+count3:  
+
+; Check if (X*Y) > NUM
+; If so, decrement X by 1; otherwise, increment Y by 1
+
+        mul     X, Y -> TMP         ; TMP = X * Y
+        gt      TMP, NUM -> TMP     ; TMP = (TMP > NUM)
+        mul     TMP, ((count4-.)-2) -> TMP ; prepare to branch to count4 if gt
+        add     TMP, IP -> IP       ; branch if gt to count4
+        add     Y, 1 -> Y           ; Y += 1
+        set     (count5-1) -> IP    ; branch to count5
+count4: add     X, -1 -> X          ; X -= 1
+
+count5:
+
+; If Y > X, then we're done; skip to the end.
+; Otherwise loop back to `count2`
+
+        gt      Y, X -> TMP         ; TMP = (Y > X)
+        add     IP, TMP -> IP       ; branch if gt to the end of the program
+        set     (count2-1) -> IP    ; branch to count2
+end:

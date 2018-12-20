@@ -1,0 +1,87 @@
+Initial registers:
+ 0 = 0
+ 1 = 0
+ 2 = 0
+ 3 = 0
+ 4 = 0
+ 5 = 0
+pc = 0
+
+(For part 2, register 0 starts out with value 1)
+
+Before each instruction, copy pc to the `#ip` register.
+After each instruction, copy `#ip` register back to pc, then increment pc.
+
+--          #ip     1
+--  ACC     #reg    r0
+--  IP      #reg    r1
+--  X       #reg    r2
+--  TMP     #reg    r3
+--  NUM     #reg    r4
+--  Y       #reg    r5
+
+;  the code works out to this:
+;
+;  NUM = 906
+;  if part2 then NUM = 10551306
+;  for Y = 1 to NUM
+;  for X = 1 to NUM
+;  if X*Y == NUM then ACC += Y
+;  next X
+;  next Y
+
+00          set     (main-1) -> IP      ; goto main
+
+01  count:  set      1 -> Y             ; Y = 1
+02  count1: set      1 -> X             ; X = 1
+
+                                        ; if (X*Y) == NUM then ACC += Y
+
+03  count2: mul     Y, X -> TMP         ; TMP = X * Y
+                                        ; if TMP == NUM then goto count3 else goto count4
+04          eq      TMP, NUM -> TMP     ; TMP = TMP == NUM
+05          add     TMP, IP -> IP       ; branch if eq to count3
+06          add     IP,  1 -> IP        ; branch to count4
+07  count3: add     Y, ACC -> ACC       ; ACC += Y
+
+08  count4: add     X,  1 -> X          ; X += 1
+
+                                        ; if (X > NUM) then goto count5 else goto count2
+09          gt      X, NUM -> TMP       ; TMP = (X > NUM)
+10          add     IP, TMP -> IP       ; branch if gt to count5
+11          set     (count2-1) -> IP    ; branch to count2
+
+12  count5: add     Y,  1 -> Y          ; Y += 1
+
+                                        ; if (Y > NUM) then goto count6 else goto count1
+13          gt      Y, NUM -> TMP       ; TMP = (Y > NUM)
+14          add     TMP, IP -> IP       ; branch if gt to count6
+15          set     (count1-1) -> IP    ; branch to count1
+
+16  count6: mul     IP, IP -> IP        ; halt (IP -> 256)
+
+17  main:   add     NUM,  2 -> NUM      ; NUM += 2
+18          mul     NUM, NUM -> NUM     ; NUM *= NUM
+19          mul     IP, NUM -> NUM      ; NUM *= IP (NUM *= 19)
+20          mul     NUM, 11 -> NUM      ; NUM *= 11
+21          add     TMP,  3 -> TMP      ; TMP += 3
+22          mul     TMP, IP -> TMP      ; TMP *= IP (TMP *= 22)
+23          add     TMP,  4 -> TMP      ; TMP += 4
+24          add     NUM, TMP -> NUM     ; NUM += TMP
+
+                                        ; if ACC then goto main2 else goto count
+25          add     IP, ACC -> IP       ; IP += ACC (skip over `ACC` instructions)
+26          set     (count-1) -> IP     ; branch to count
+
+27  main2:  set     IP -> TMP           ; TMP = IP (TMP = 27)
+28          mul     TMP, IP -> TMP      ; TMP *= IP (TMP *= 28)
+29          add     IP, TMP -> TMP      ; TMP += IP (TMP += 29)
+30          mul     IP, TMP -> TMP      ; TMP *= IP (TMP *= 30)
+31          mul     TMP, 14 -> TMP      ; TMP *= 14
+32          mul     TMP, IP -> TMP      ; TMP *= IP (TMP *= 32)
+33          add     NUM, TMP -> NUM     ; NUM += TMP
+
+34          set     0 -> ACC            ; ACC = 0
+
+35          set     (count-1) -> IP     ; goto count
+
