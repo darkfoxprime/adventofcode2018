@@ -5,6 +5,7 @@ import itertools
 import time
 import operator
 import os.path
+import pprint
 
 DEBUGGING = False
 
@@ -23,32 +24,36 @@ def accumulate(iterable, func=operator.add):
         total = func(total, element)
         yield total
 
+real_accumulate = accumulate
+def debug_accumulate(iterable, func = operator.add):
+    def debug(state, value):
+        print >> sys.stderr, ">>accumulate<< element={!r}".format(value)
+        return func(state, value)
+    for state in real_accumulate(iterable, debug):
+        print >> sys.stderr, ">>accumulate<< state={!r}".format(state)
+        yield state
+    print >> sys.stderr, ">>accumulate<< done"
+
+real_reduce = reduce
+def debug_reduce(func, *args):
+    def debug(state, value):
+        print >> sys.stderr, ">>reduce<< state={!r} value={!r}".format(state, value)
+        return func(state, value)
+    final = real_reduce(debug, *args)
+    print >> sys.stderr, ">>reduce<< final state={0!r}".format(final)
+    return final
+
 if DEBUGGING:
 
     print >> sys.stderr, "Debugging version of `reduce` enabled"
 
-    real_reduce = reduce
-    def reduce(func, *args):
-        def debug(state, value):
-            print >> sys.stderr, ">>reduce<< state={!r} value={!r}".format(state, value)
-            return func(state, value)
-        final = real_reduce(debug, *args)
-        print >> sys.stderr, ">>reduce<< final state={0!r}".format(final)
-        return final
+    reduce = debug_reduce
 
 if DEBUGGING:
 
     print >> sys.stderr, "Debugging version of `accumulate` enabled"
 
-    real_accumulate = accumulate
-    def accumulate(iterable, func = operator.add):
-        def debug(state, value):
-            print >> sys.stderr, ">>accumulate<< element={!r}".format(value)
-            return func(state, value)
-        for state in real_accumulate(iterable, debug):
-            print >> sys.stderr, ">>accumulate<< state={!r}".format(state)
-            yield state
-        print >> sys.stderr, ">>accumulate<< done"
+    accumulate = debug_accumulate
 
 ########################################################################
 #
@@ -98,12 +103,16 @@ if __name__ == '__main__':
                 )
 
         t = time.time()
+        if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
         result = part_1(process_input_data(sample_data))
+        if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
         t = time.time() - t
         print "{}: sample {}: part 1 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
 
     t = time.time()
+    if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
     result = part_1(process_input_data(input_data))
+    if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
     t = time.time() - t
     print "{}: input data: part 1 = {}".format(t, result)
 
@@ -120,12 +129,16 @@ if __name__ == '__main__':
                 )
 
         t = time.time()
+        if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
         result = part_2(process_input_data(sample_data))
+        if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
         t = time.time() - t
         print "{}: sample {}: part 2 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
 
     t = time.time()
+    if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
     result = part_2(process_input_data(input_data))
+    if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
     t = time.time() - t
     print "{}: input data: part 2 = {}".format(t, result)
 
