@@ -1,6 +1,3 @@
-### TO DO
-# Figure out why `simplify_path_expr` is replacing
-# transition targets with incorrect node ids.
 
 import re
 import sys
@@ -9,6 +6,8 @@ import time
 import operator
 import os.path
 import pprint
+
+from blist import blist
 
 DEBUGGING = False
 
@@ -702,11 +701,10 @@ parse_path_expr_to_nfa = lambda path_expr: (
 # The initial state of the reduction is the NFA items list from the
 # accumulator.
 #
-# The reduction runs over the NFA items list, filtered to find only
-# those items whose node is one long and whose single node transition
-# has an empty string:  `len(item[1]) == 1 and item[1][0][0] == ''`
+# The reduction runs over the first NFA item found whose node has
+# only one transition and that transition has an empty string.
 #
-# For each such item, replace the list of dictionary items (the
+# For that item, replace the list of dictionary items (the
 # reduction state) with a filtered comprehension that...
 #
 #     *   Replaces any transition that targets the item's node id with
@@ -735,7 +733,7 @@ simplify_path_expr = lambda nfa_items: (
 
 # This is done through an accumulator ...
 
-                debug_accumulate(
+                accumulate(
 
 # The accumulator's iterator is a chain of the NFA items, plus an
 # infinite counter.
@@ -794,9 +792,11 @@ simplify_path_expr = lambda nfa_items: (
 # has an empty string:  `len(item[1]) == 1 and item[1][0][0] == ''`
 
                             [
-                                item
-                                for item in filtering_nfa_items
-                                if len(item[1]) == 1 and item[1][0][0] == ''
+                                (
+                                    item
+                                    for item in filtering_nfa_items
+                                    if len(item[1]) == 1 and item[1][0][0] == ''
+                                ).next()
                             ]
                             ,
 
@@ -960,7 +960,7 @@ destination_of_path = lambda path: (
 # to each destination.
 
 part_1 = lambda input_data: (
-input_data); lambda: (
+#input_data); lambda: (
 
 # Finally, the length ...
 
@@ -982,70 +982,71 @@ input_data); lambda: (
 # Each path then has its destination computed (using the
 # `destination_of_path` helper function) in a list comprehension.
 
-                            [
-                                (
-                                    pathslist[0]
-                                    ,
-                                    destination_of_path(pathslist[0])
-                                )
+                            sorted(
+                                [
+                                    (
+                                        pathslist[0]
+                                        ,
+                                        destination_of_path(pathslist[0])
+                                    )
 
 # The accumulator is passed through a `dropwhile` that drops the return
 # values from the accumulator until all of the path expressions in the
 # paths list are None (meaning the associated paths are complete).
 
-                                for pathslist in itertools.dropwhile(
-                                    lambda pathslist: (
-                                        max(
-                                            pathset[1] is not None
-                                            for pathset in pathslist
+                                    for pathslist in itertools.dropwhile(
+                                        lambda pathslist: (
+                                            max(
+                                                pathset[1] is not None
+                                                for pathset in pathslist
+                                            )
                                         )
-                                    )
-                                    ,
+                                        ,
 
 # This is an accumulator that processes and re-processes a list of
 # paths and following path expressions until all path expressions
 # are "expressed".
 
-                                    debug_accumulate(
+                                        accumulate(
 
 #     The accumulator's iterator is a chain of
 
-                                        itertools.chain(
+                                            itertools.chain(
 
 #         An iterator that returns the initial paths list - a list
 #         containing a single tuple of an empty path and the parsed
 #         input data.
 
-                                            [
-                                                [ ( '', input_data ) ]
-                                            ]
-                                            ,
+                                                [
+                                                    blist( ( '', input_data ) )
+                                                ]
+                                                ,
 
 #         And an infinite counter.
 
-                                            itertools.count(0)
+                                                itertools.count(0)
 
-                                        )
-                                        ,
+                                            )
+                                            ,
 
 #     Each step of the accumulator...
 
-                                        lambda pathslist, _: (
+                                            lambda pathslist, _: (
 
 #         Removes and examines the first path and path expression in
 #         the paths list.
 
-                                            pathslist[1:] + (
+                                                pathslist[1:] + (
 
 #         If the path expression is None or empty (its `$` and `^`
 #         indices pointing to the same node), add the path back
 #         to the end of the paths list with an expression of None.
 
-                                                [ (pathslist[0][0], None) ]
-                                                if pathslist[0][1] is None
-                                                or pathslist[0][1]['^'][0][1]
-                                                   == pathslist[0][1]['$'][0][1]
-                                                else
+                                                    blist( (pathslist[0][0], None) )
+                                                    if pathslist[0][1] is None
+                                                    or pathslist[0][1]['^'][0][1]
+                                                       == pathslist[0][1]['$'][0][1]
+                                                    else
 
 #         *** pathslist[0] is the pathset we're examining.
 #         *** pathslist[0][0] is the path from that pathset.
@@ -1061,50 +1062,53 @@ input_data); lambda: (
 #         Otherwise, extend the paths list by adding one or more new
 #         path+expression tuples to the list ...
 
-                                                [
+                                                    blist(
 
 #         Each new path+expression tuple consists of the original path
 #         with the transition path sequence appended to it, and a modified
 #         path expression with the start node `^` now pointing to the
 #         transition's destination node.
 
-                                                    (
-                                                        pathslist[0][0] + transition[0]
-                                                        ,
-                                                        dict(
-                                                            (
-                                                                item[0]
-                                                                ,
+                                                        (
+                                                            pathslist[0][0] + transition[0]
+                                                            ,
+                                                            dict(
                                                                 (
+                                                                    item[0]
+                                                                    ,
                                                                     (
-                                                                        '^'
-                                                                        ,
-                                                                        transition[1]
-                                                                    ),
+                                                                        (
+                                                                            '^'
+                                                                            ,
+                                                                            transition[1]
+                                                                        ),
+                                                                    )
                                                                 )
+                                                                if item[0] == '^'
+                                                                else item
+                                                                for item in
+                                                                    pathslist[0][1].items()
                                                             )
-                                                            if item[0] == '^'
-                                                            else item
-                                                            for item in
-                                                                pathslist[0][1].items()
                                                         )
-                                                    )
 
 #         ... via a list comprehension
 #         against the transitions from current start node.
 
-                                                    for transition in pathslist[0][1][
-                                                        pathslist[0][1]['^'][0][1]
-                                                    ]
-                                                ]
+                                                        for transition in pathslist[0][1][
+                                                            pathslist[0][1]['^'][0][1]
+                                                        ]
+                                                    )
 
-                                            )
+                                                )
 
-                                        ) # end of accumulate lambda
+                                            ) # end of accumulate lambda
 
-                                    ) # end of accumulate
-                                ).next() # end of dropwhile
-                            ]
+                                        ) # end of accumulate
+                                    ).next() # end of dropwhile
+                                ]
+                                ,
+                                key = lambda pathdest: pathdest[1]
+                            )
                             ,
 
                             lambda pathset: pathset[1]
@@ -1139,7 +1143,7 @@ part_2 = lambda input_data: (
 #
 # Main controller
 
-DEBUGGING = True
+DEBUGGING = False
 
 if __name__ == '__main__':
 
@@ -1166,6 +1170,8 @@ if __name__ == '__main__':
         if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
         t = time.time() - t
         print "{}: sample {}: part 1 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
+
+    if DEBUGGING: sys.exit(0)
 
     t = time.time()
     if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
