@@ -29,31 +29,42 @@ def accumulate(iterable, func=operator.add):
 real_accumulate = accumulate
 def debug_accumulate(iterable, func = operator.add):
     def debug(state, value):
-        print >> sys.stderr, ">>accumulate<< element={!r}".format(value)
+        print ">>accumulate<< element={!r}".format(value)
         return func(state, value)
     for state in real_accumulate(iterable, debug):
-        print >> sys.stderr, ">>accumulate<< state={!r}".format(state)
+        print ">>accumulate<< state={!r}".format(state)
         yield state
-    print >> sys.stderr, ">>accumulate<< done"
+    print ">>accumulate<< done"
 
 real_reduce = reduce
 def debug_reduce(func, *args):
     def debug(state, value):
-        print >> sys.stderr, ">>reduce<< state={!r} value={!r}".format(state, value)
+        print ">>reduce<< state={!r} value={!r}".format(state, value)
         return func(state, value)
     final = real_reduce(debug, *args)
-    print >> sys.stderr, ">>reduce<< final state={0!r}".format(final)
+    print ">>reduce<< final state={0!r}".format(final)
     return final
+
+def debug_dropwhile(func, *args):
+    def debug(value):
+        print ">>dropwhile<< value={!r}".format(value)
+        ret = func(value)
+        print ">>dropwhile<< ret={!r}".format(ret)
+        return ret
+    for state in itertools.dropwhile(debug, *args):
+        print ">>dropwhile<< yielding {!r}".format(state)
+        yield state
+    print ">>dropwhile<< done"
 
 if DEBUGGING:
 
-    print >> sys.stderr, "Debugging version of `reduce` enabled"
+    print "Debugging version of `reduce` enabled"
 
     reduce = debug_reduce
 
 if DEBUGGING:
 
-    print >> sys.stderr, "Debugging version of `accumulate` enabled"
+    print "Debugging version of `accumulate` enabled"
 
     accumulate = debug_accumulate
 
@@ -1018,7 +1029,7 @@ part_1 = lambda input_data: (
 #         input data.
 
                                                 [
-                                                    blist( ( '', input_data ) )
+                                                    blist([ ( '', input_data ) ])
                                                 ]
                                                 ,
 
@@ -1042,7 +1053,7 @@ part_1 = lambda input_data: (
 #         indices pointing to the same node), add the path back
 #         to the end of the paths list with an expression of None.
 
-                                                    blist( (pathslist[0][0], None) )
+                                                    blist([(pathslist[0][0], None)])
                                                     if pathslist[0][1] is None
                                                     or pathslist[0][1]['^'][0][1]
                                                        == pathslist[0][1]['$'][0][1]
@@ -1165,7 +1176,7 @@ if __name__ == '__main__':
                 )
 
         t = time.time()
-        if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
+        if DEBUGGING: print "\nprocessing {} with expected results {}".format(sample_filename, expected)
         result = part_1(process_input_data(sample_data))
         if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
         t = time.time() - t
@@ -1174,7 +1185,7 @@ if __name__ == '__main__':
     if DEBUGGING: sys.exit(0)
 
     t = time.time()
-    if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
+    if DEBUGGING: print "\nprocessing {}".format(sample_filename)
     result = part_1(process_input_data(input_data))
     if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
     t = time.time() - t
@@ -1193,14 +1204,14 @@ if __name__ == '__main__':
                 )
 
         t = time.time()
-        if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
+        if DEBUGGING: print "\nprocessing {} with expected results {}".format(sample_filename, expected)
         result = part_2(process_input_data(sample_data))
         if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
         t = time.time() - t
         print "{}: sample {}: part 2 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
 
     t = time.time()
-    if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
+    if DEBUGGING: print "\nprocessing {}".format(sample_filename)
     result = part_2(process_input_data(input_data))
     if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
     t = time.time() - t
