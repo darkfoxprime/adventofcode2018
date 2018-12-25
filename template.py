@@ -7,6 +7,12 @@ import operator
 import os.path
 import pprint
 
+run_part_1 = True
+run_part_2 = True
+
+run_samples = True
+run_data = True
+
 DEBUGGING = False
 
 # pull in python-native version of `accumulate` from python 3
@@ -55,6 +61,10 @@ if DEBUGGING:
 
     accumulate = debug_accumulate
 
+def debug_value(prefix, value):
+    print >> sys.stderr, '{}{}'.format(prefix, value)
+    return value
+
 ########################################################################
 #
 # Process input data to return the appropriate records or data format.
@@ -68,7 +78,7 @@ process_input_data = lambda input_data: (
 # Part 1:   ...
 
 part_1 = lambda input_data: (
-            None
+            input_data
         )
 
 ########################################################################
@@ -90,55 +100,63 @@ if __name__ == '__main__':
     input_filename = '{}.input'.format(base_filename)
     input_data = open(input_filename).read()
 
-    for sample_num in itertools.takewhile(lambda num:os.path.exists('{}.sample.{}'.format(base_filename, num)), itertools.count(1)):
+    if run_part_1 and run_samples:
 
-        sample_filename = '{}.sample.{}'.format(base_filename, sample_num)
-        sample_data = open(sample_filename).read()
+        for sample_num in itertools.takewhile(lambda num:os.path.exists('{}.sample.{}'.format(base_filename, num)), itertools.count(1)):
 
-        results_filename = '{}.sample.results.part1.{}'.format(base_filename, sample_num)
-        expected = (
-                    int(open(results_filename).read().strip())
-                    if os.path.exists(results_filename)
-                    else None
-                )
+            sample_filename = '{}.sample.{}'.format(base_filename, sample_num)
+            sample_data = open(sample_filename).read()
 
-        t = time.time()
-        if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
-        result = part_1(process_input_data(sample_data))
-        if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
-        t = time.time() - t
-        print "{}: sample {}: part 1 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
+            results_filename = '{}.sample.results.part1.{}'.format(base_filename, sample_num)
+            expected = (
+                        int(open(results_filename).read().strip())
+                        if os.path.exists(results_filename)
+                        else None
+                    )
 
-    t = time.time()
-    if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
-    result = part_1(process_input_data(input_data))
-    if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
-    t = time.time() - t
-    print "{}: input data: part 1 = {}".format(t, result)
+            t = time.time()
+            if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
+            result = part_1(process_input_data(sample_data))
+            if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
+            t = time.time() - t
+            print "{}: sample {}: part 1 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
 
-    for sample_num in itertools.takewhile(lambda num:os.path.exists('{}.sample.{}'.format(base_filename, num)), itertools.count(1)):
-
-        sample_filename = '{}.sample.{}'.format(base_filename, sample_num)
-        sample_data = open(sample_filename).read()
-
-        results_filename = '{}.sample.results.part2.{}'.format(base_filename, sample_num)
-        expected = (
-                    int(open(results_filename).read().strip())
-                    if os.path.exists(results_filename)
-                    else None
-                )
+    if run_part_1 and run_data:
 
         t = time.time()
-        if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
-        result = part_2(process_input_data(sample_data))
+        if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
+        result = part_1(process_input_data(input_data))
         if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
         t = time.time() - t
-        print "{}: sample {}: part 2 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
+        print "{}: input data: part 1 = {}".format(t, result)
 
-    t = time.time()
-    if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
-    result = part_2(process_input_data(input_data))
-    if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
-    t = time.time() - t
-    print "{}: input data: part 2 = {}".format(t, result)
+    if run_part_2 and run_samples:
+
+        for sample_num in itertools.takewhile(lambda num:os.path.exists('{}.sample.{}'.format(base_filename, num)), itertools.count(1)):
+
+            sample_filename = '{}.sample.{}'.format(base_filename, sample_num)
+            sample_data = open(sample_filename).read()
+
+            results_filename = '{}.sample.results.part2.{}'.format(base_filename, sample_num)
+            expected = (
+                        int(open(results_filename).read().strip())
+                        if os.path.exists(results_filename)
+                        else None
+                    )
+
+            t = time.time()
+            if DEBUGGING: print >> sys.stderr, "\nprocessing {} with expected results {}".format(sample_filename, expected)
+            result = part_2(process_input_data(sample_data))
+            if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
+            t = time.time() - t
+            print "{}: sample {}: part 2 = {}{}".format(t, sample_num, result, " (expected {})".format(expected) if result != expected else "")
+
+    if run_part_2 and run_data:
+
+        t = time.time()
+        if DEBUGGING: print >> sys.stderr, "\nprocessing {}".format(sample_filename)
+        result = part_2(process_input_data(input_data))
+        if DEBUGGING: result = '\n' + pprint.pformat(result) + '\n'
+        t = time.time() - t
+        print "{}: input data: part 2 = {}".format(t, result)
 
